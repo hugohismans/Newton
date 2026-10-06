@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#05060f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Newton</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #05060f;
+        --sat: env(safe-area-inset-top, 0px);
+        --sar: env(safe-area-inset-right, 0px);
+        --sab: env(safe-area-inset-bottom, 0px);
+        --sal: env(safe-area-inset-left, 0px);
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: #e8f0ff;
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: none;
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+      }
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      #bg {
+        image-rendering: auto;
+      }
+      #safe {
+        position: fixed;
+        top: var(--sat);
+        right: var(--sar);
+        bottom: var(--sab);
+        left: var(--sal);
+        pointer-events: none;
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="bg"></canvas>
+    <canvas id="fg"></canvas>
+    <div id="safe"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
