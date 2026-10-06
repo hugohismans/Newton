@@ -182,3 +182,77 @@ export function portalize<T extends SolidDef>(s: T, child: string): T {
   s.ret = v((b.minX + b.maxX) / 2, b.minY - 6);
   return s;
 }
+
+/** Ground made of a chain of small Koch curves: a walkable fractal texture. */
+export function kochStrip(x0: number, x1: number, y: number, seg: number, iter: number, bottom: number, up = true): SolidDef {
+  const n = Math.max(1, Math.round((x1 - x0) / seg));
+  const w = (x1 - x0) / n;
+  const curve: Vec[] = [];
+  const fine: Vec[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = v(x0 + i * w, y);
+    const b = v(x0 + (i + 1) * w, y);
+    const c = kochCurve(a, b, iter, up ? 1 : -1);
+    const f = kochCurve(a, b, iter + 1, up ? 1 : -1);
+    if (i > 0) (c.shift(), f.shift());
+    curve.push(...c);
+    fine.push(...f);
+  }
+  return {
+    kind: 'ground',
+    poly: [...curve, v(x1, bottom), v(x0, bottom)],
+    detail: [...fine, v(x1, bottom), v(x0, bottom)],
+  };
+}
+
+/**
+ * Vertical Koch wall at x from y1 (bottom) up to y0 (top).
+ * side=-1: solid on the left, bumps poke right. side=1: solid on the right.
+ */
+export function kochWall(x: number, y0: number, y1: number, seg: number, iter: number, side: -1 | 1, depth = 200): SolidDef {
+  const n = Math.max(1, Math.round((y1 - y0) / seg));
+  const h = (y1 - y0) / n;
+  const curve: Vec[] = [];
+  const fine: Vec[] = [];
+  const sgn = side === -1 ? -1 : 1;
+  for (let i = 0; i < n; i++) {
+    const a = v(x, y1 - i * h);
+    const b = v(x, y1 - (i + 1) * h);
+    const c = kochCurve(a, b, iter, sgn);
+    const f = kochCurve(a, b, iter + 1, sgn);
+    if (i > 0) (c.shift(), f.shift());
+    curve.push(...c);
+    fine.push(...f);
+  }
+  const ox = x + side * depth;
+  return {
+    kind: 'ground',
+    poly: [...curve, v(ox, y0), v(ox, y1)],
+    detail: [...fine, v(ox, y0), v(ox, y1)],
+  };
+}
+
+/** Flake placed by its top-left shoulder: the flat ledge you land on. */
+export function flakeAt(sx: number, sy: number, size: number, iter = 2, opts: { portal?: string } = {}) {
+  return flake(sx + size / 2, sy + size * 0.2887, size, iter, opts);
+}
+
+/** Ground from consecutive Koch pieces: [length, iterations, repeat]. */
+export function kochPath(x0: number, y: number, pieces: [number, number, number][], bottom: number): SolidDef {
+  const curve: Vec[] = [v(x0, y)];
+  const fine: Vec[] = [v(x0, y)];
+  let x = x0;
+  for (const [len, iter, n] of pieces)
+    for (let i = 0; i < n; i++) {
+      const a = v(x, y);
+      const b = v(x + len, y);
+      curve.push(...kochCurve(a, b, iter, 1).slice(1));
+      fine.push(...kochCurve(a, b, iter + 1, 1).slice(1));
+      x += len;
+    }
+  return {
+    kind: 'ground',
+    poly: [...curve, v(x, bottom), v(x0, bottom)],
+    detail: [...fine, v(x, bottom), v(x0, bottom)],
+  };
+}

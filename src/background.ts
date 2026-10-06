@@ -36,13 +36,14 @@ vec3 newton(vec2 z) {
     if (distance(z, r3) < 0.02) { root = 2; break; }
     it += 1.0;
   }
-  vec3 c0 = pal(uHue + 0.00, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.55, 0.65, 0.75));
-  vec3 c1 = pal(uHue + 0.33, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.55, 0.65, 0.75));
-  vec3 c2 = pal(uHue + 0.66, vec3(0.5), vec3(0.5), vec3(1.0), vec3(0.55, 0.65, 0.75));
+  // Three deep jewel tones; depth rotates the hue.
+  vec3 c0 = pal(uHue + 0.00, vec3(0.30, 0.32, 0.50), vec3(0.30, 0.30, 0.40), vec3(1.0), vec3(0.50, 0.60, 0.70));
+  vec3 c1 = pal(uHue + 0.30, vec3(0.30, 0.32, 0.50), vec3(0.30, 0.30, 0.40), vec3(1.0), vec3(0.50, 0.60, 0.70));
+  vec3 c2 = pal(uHue + 0.62, vec3(0.30, 0.32, 0.50), vec3(0.30, 0.30, 0.40), vec3(1.0), vec3(0.50, 0.60, 0.70));
   vec3 col = root == 0 ? c0 : root == 1 ? c1 : root == 2 ? c2 : vec3(0.0);
   float shade = pow(1.0 - it / 28.0, 2.2);
   float edge = smoothstep(4.0, 14.0, it) * (1.0 - shade);
-  return col * (0.18 + 0.82 * shade) * 0.55 + vec3(0.25, 0.55, 1.0) * edge * 0.35;
+  return col * (0.12 + 0.88 * shade) * 0.5 + vec3(0.35, 0.75, 1.0) * edge * 0.45;
 }
 
 vec3 mandel(vec2 c) {
@@ -54,10 +55,10 @@ vec3 mandel(vec2 c) {
     if (dot(z, z) > 256.0) break;
     n += 1.0;
   }
-  if (n >= MAXI) return vec3(0.0);
+  if (n >= MAXI) return vec3(0.02, 0.015, 0.05);
   float sn = n - log2(log2(dot(z, z))) + 4.0;
   float t = sn / 48.0 + uHue;
-  vec3 col = pal(t, vec3(0.5), vec3(0.5), vec3(1.0, 1.0, 1.0), vec3(0.0, 0.10, 0.20));
+  vec3 col = pal(t, vec3(0.45, 0.38, 0.40), vec3(0.45, 0.38, 0.40), vec3(1.0, 1.0, 1.0), vec3(0.0, 0.12, 0.25));
   return col * (0.35 + 0.65 * smoothstep(0.0, 30.0, sn)) * 0.75;
 }
 

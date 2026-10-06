@@ -33,6 +33,7 @@ export const P = {
   dashBuffer: 0.08,
   superH: 260,
   freeze: 0.05,
+  step: 6,
 };
 
 export interface Abilities {
@@ -231,7 +232,9 @@ export class Player {
     const steps = Math.max(1, Math.ceil(dist / (P.r * 0.45)));
     const contacts: Contact[] = [];
     for (let i = 0; i < steps; i++) {
-      this.pos.x += (this.vel.x * dt) / steps;
+      const dx = (this.vel.x * dt) / steps;
+      if (this.grounded && dx !== 0) this.stepUp(world, dx);
+      this.pos.x += dx;
       this.pos.y += (this.vel.y * dt) / steps;
       contacts.length = 0;
       world.resolve(this.pos, P.r, contacts);
@@ -271,6 +274,20 @@ export class Player {
     this.lastFall = this.vel.y > 0 ? this.vel.y : this.grounded ? 0 : this.lastFall;
   }
   private lastFall = 0;
+
+  /** Walk up small ledges (the finest fractal bumps) instead of being blocked by them. */
+  private stepUp(world: Collider, dx: number) {
+    const blocked = world
+      .contacts(this.pos.x + dx, this.pos.y, P.r)
+      .some((c) => Math.abs(c.nx) > 0.45 && c.ny >= GROUND_NY && sign(c.nx) === -sign(dx));
+    if (!blocked) return;
+    for (let h = 1; h <= P.step; h++) {
+      if (world.contacts(this.pos.x + dx, this.pos.y - h, P.r - 0.05).length === 0) {
+        this.pos.y -= h;
+        return;
+      }
+    }
+  }
 
   private probeGround(world: Collider, d: number) {
     const cs = world.contacts(this.pos.x, this.pos.y + d, P.r);

@@ -58,6 +58,8 @@ export class Input {
   /** Last frame's touch-stick direction, used for the "down" edge. */
   private prevStickDown = false;
   private prevKeyDown = false;
+  /** Pointer/touch taps in CSS pixels, consumed by menus. */
+  taps: { x: number; y: number }[] = [];
   /** Called on the first user gesture (audio unlock). */
   onGesture: (() => void) | null = null;
 
@@ -71,6 +73,7 @@ export class Input {
       if (KEY_DASH.includes(k)) this.latched.dash = true;
       if (KEY_DIVE.includes(k)) this.latched.dive = true;
       if (KEY_PAUSE.includes(k)) this.latched.pause = true;
+      if (KEY_DOWN.includes(k)) this.latched.down = true;
       this.latched.any = true;
       this.onGesture?.();
       if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
@@ -106,6 +109,8 @@ export class Input {
 
   private pointerDown(e: PointerEvent) {
     e.preventDefault();
+    this.taps.push({ x: e.clientX, y: e.clientY });
+    if (this.taps.length > 8) this.taps.shift();
     if (e.pointerType === 'mouse') {
       // Mouse clicks only count as "any key" (menus); the game is played with keys.
       this.latched.any = true;
@@ -240,6 +245,7 @@ export class Input {
     const stickDown = sd.y > 0 && sd.x === 0;
     const padDown = this.padAxes.y > 0 && this.padAxes.x === 0;
     const downEdge =
+      this.latched.down ||
       (keyDown && !this.prevKeyDown) || (stickDown && !this.prevStickDown) || (padDown && !this.prevPadDown);
     this.prevKeyDown = keyDown;
     this.prevStickDown = stickDown;
