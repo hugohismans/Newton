@@ -32,6 +32,7 @@ Les capacités se débloquent au fil des salles : saut, puis saut mural, puis da
 - `src/room.ts`, `src/levels.ts` : constructeurs de salles et contenu des niveaux
 - `src/game.ts` : états du jeu, caméra, transitions de plongée, interface et menus
 - `src/background.ts` : shaders Newton et Mandelbrot en WebGL2
+- `src/assets/hero.png` : sprite du héros, pack CC0 de JIK-A-4 (https://jik-a-4.itch.io/free-pixel-art-platformer-characters)
 - `src/audio.ts` : sons synthétisés avec WebAudio, sans fichiers audio
 
 Outils de dev : `?room=<id>` ouvre directement une salle, `&all` donne toutes les

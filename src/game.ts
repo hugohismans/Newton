@@ -9,6 +9,35 @@ import { Abilities, P, Player } from './player';
 import { Cam, RoomState, RoomView, drawRoom, hexA, setCam } from './render';
 import { RoomDef } from './room';
 import { ABILITY_CARDS, hintText } from './text';
+import heroUrl from './assets/hero.png';
+
+/** Hero sprite sheet: 39 frames of 32×32, facing right (CC0 pack by JIK-A-4). */
+const HERO = {
+  idle: [0, 1, 2, 3, 4, 5, 6],
+  run: [7, 8, 9, 10, 11],
+  death: [30, 31, 32, 33, 34, 35, 36, 37, 38],
+  feet: 31,
+  /** World units per sprite pixel: the knight stands about 14 units tall. */
+  scale: 14 / 26,
+};
+const heroImg = new Image();
+heroImg.src = heroUrl;
+const tints = new Map<string, HTMLCanvasElement>();
+/** Same sheet filled with one colour, for afterimages and the dash flash. */
+function heroTint(color: string) {
+  let c = tints.get(color);
+  if (c || !heroImg.complete || !heroImg.naturalWidth) return c ?? heroImg;
+  c = document.createElement('canvas');
+  c.width = heroImg.naturalWidth;
+  c.height = heroImg.naturalHeight;
+  const x = c.getContext('2d')!;
+  x.drawImage(heroImg, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = color;
+  x.fillRect(0, 0, c.width, c.height);
+  tints.set(color, c);
+  return c;
+}
 
 type Mode = 'title' | 'play' | 'dying' | 'wipe' | 'dive' | 'rise' | 'pause' | 'card' | 'end';
 
@@ -765,6 +794,7 @@ export class Game {
       this.drawHints(cam);
       this.particles.draw(ctx);
       if (this.mode !== 'dying') this.drawPlayer(cam, alpha);
+      else this.drawDeath();
     }
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -866,56 +896,63 @@ export class Game {
     ctx.globalAlpha = 1;
   }
 
-  private drawPlayer(cam: Cam, alpha: number) {
+  /** Pick the sprite frame for the player's current state. */
+  private heroFrame() {
+    const pl = this.player;
+    if (pl.dashing > 0) return 30;
+    if (!pl.grounded) {
+      if (this.save.abilities.wallJump && pl.wallDir !== 0 && pl.vel.y > 0) return 9;
+      return pl.vel.y < 0 ? 2 : 4;
+    }
+    if (Math.abs(pl.vel.x) > 12) return HERO.run[Math.floor(this.time * 12) % HERO.run.length];
+    return HERO.idle[Math.floor(this.time * 7) % HERO.idle.length];
+  }
+
+  private drawHero(frame: number, x: number, feetY: number, facing: number, sx = 1, sy = 1, sheet: CanvasImageSource = heroImg) {
+    const ctx = this.ctx;
+    const k = HERO.scale;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(x, feetY);
+    ctx.scale(facing * sx * k, sy * k);
+    ctx.drawImage(sheet, frame * 32, 0, 32, 32, -16, -HERO.feet, 32, 32);
+    ctx.restore();
+  }
+
+  private drawPlayer(_cam: Cam, alpha: number) {
     const ctx = this.ctx;
     const pl = this.player;
     const a = this.mode === 'play' ? alpha : 1;
     const x = lerp(pl.prev.x, pl.pos.x, a);
     const y = lerp(pl.prev.y, pl.pos.y, a);
     const col = this.playerColor();
-    // Dash afterimages.
+    const frame = this.heroFrame();
+    // Dash afterimages as tinted silhouettes.
+    const ghost = heroTint(col);
     for (const tr of pl.trail) {
-      ctx.globalAlpha = tr.life * 0.5;
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.arc(tr.x, tr.y, P.r, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.globalAlpha = tr.life * 0.55;
+      this.drawHero(frame, tr.x, tr.y + P.r, pl.facing, 1, 1, ghost);
     }
     ctx.globalAlpha = 1;
-    // Glow.
-    const g = ctx.createRadialGradient(x, y, 0, x, y, 16);
-    g.addColorStop(0, hexA(col, 0.35));
+    // Glow: its colour tells whether the dash is available, like Madeline's hair.
+    const g = ctx.createRadialGradient(x, y - 2, 0, x, y - 2, 18);
+    g.addColorStop(0, hexA(col, 0.4));
     g.addColorStop(1, hexA(col, 0));
     ctx.fillStyle = g;
-    ctx.fillRect(x - 16, y - 16, 32, 32);
-    // Hair.
-    ctx.fillStyle = col;
-    pl.hair.forEach((h, i) => {
-      ctx.beginPath();
-      ctx.arc(h.x, h.y, Math.max(0.6, 2.6 - i * 0.35), 0, Math.PI * 2);
-      ctx.fill();
-    });
-    // Body (squash & stretch, anchored at the feet).
-    ctx.save();
-    ctx.translate(x, y + P.r);
-    ctx.scale(pl.scale.x, pl.scale.y);
-    ctx.beginPath();
-    ctx.arc(0, -P.r, P.r + 0.3, 0, Math.PI * 2);
-    ctx.fillStyle = pl.flash > 0 ? '#ffffff' : col;
-    ctx.fill();
-    ctx.lineWidth = 0.9 / cam.s;
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.stroke();
-    // Eyes.
-    ctx.fillStyle = '#0a0d1c';
-    const ex = pl.facing * 1.6;
-    const blink = Math.sin(this.time * 1.3) > 0.985 ? 0.25 : 1;
-    for (const o of [-1.1, 1.3]) {
-      ctx.beginPath();
-      ctx.ellipse(ex + o, -P.r - 0.6, 0.55, 1.1 * blink, 0, 0, Math.PI * 2);
-      ctx.fill();
+    ctx.fillRect(x - 18, y - 20, 36, 36);
+    this.drawHero(frame, x, y + P.r, pl.facing, pl.scale.x, pl.scale.y);
+    if (pl.flash > 0) {
+      ctx.globalAlpha = pl.flash;
+      this.drawHero(frame, x, y + P.r, pl.facing, pl.scale.x, pl.scale.y, heroTint('#ffffff'));
+      ctx.globalAlpha = 1;
     }
-    ctx.restore();
+  }
+
+  private drawDeath() {
+    const f = HERO.death[Math.min(HERO.death.length - 1, Math.floor((this.modeT / 0.5) * HERO.death.length))];
+    this.ctx.globalAlpha = clamp(1.4 - this.modeT * 2, 0, 1);
+    this.drawHero(f, this.dyingPos.x, this.dyingPos.y + P.r, this.player.facing);
+    this.ctx.globalAlpha = 1;
   }
 
   private drawHints(cam: Cam) {
