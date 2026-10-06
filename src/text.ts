@@ -44,6 +44,11 @@ const HINTS: Record<HintKey, PerDevice> = {
     keyboard: 'La sortie est scellée. Le fragment est à l’intérieur…',
     gamepad: 'La sortie est scellée. Le fragment est à l’intérieur…',
   },
+  rise: {
+    touch: 'Ce cercle te ramène à la surface',
+    keyboard: 'Ce cercle te ramène à la surface',
+    gamepad: 'Ce cercle te ramène à la surface',
+  },
   super: {
     touch: 'Astuce : saute pendant un dash au sol pour un super-saut',
     keyboard: 'Astuce : saute pendant un dash au sol pour un super-saut',

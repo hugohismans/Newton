@@ -28,7 +28,7 @@ export interface ItemDef {
   id: string;
 }
 
-export type HintKey = 'move' | 'jump' | 'hold' | 'walljump' | 'dash' | 'refill' | 'dive' | 'fragment' | 'super';
+export type HintKey = 'move' | 'jump' | 'hold' | 'walljump' | 'dash' | 'refill' | 'dive' | 'fragment' | 'super' | 'rise';
 export interface HintDef {
   x: number;
   y: number;

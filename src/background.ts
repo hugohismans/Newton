@@ -49,8 +49,8 @@ vec3 newton(vec2 z) {
 vec3 mandel(vec2 c) {
   vec2 z = vec2(0.0);
   float n = 0.0;
-  const float MAXI = 160.0;
-  for (int i = 0; i < 160; i++) {
+  const float MAXI = 220.0;
+  for (int i = 0; i < 220; i++) {
     z = cmul(z, z) + c;
     if (dot(z, z) > 256.0) break;
     n += 1.0;
@@ -59,7 +59,7 @@ vec3 mandel(vec2 c) {
   float sn = n - log2(log2(dot(z, z))) + 4.0;
   float t = sn / 48.0 + uHue;
   vec3 col = pal(t, vec3(0.45, 0.38, 0.40), vec3(0.45, 0.38, 0.40), vec3(1.0, 1.0, 1.0), vec3(0.0, 0.12, 0.25));
-  return col * (0.35 + 0.65 * smoothstep(0.0, 30.0, sn)) * 0.75;
+  return col * (0.30 + 0.70 * smoothstep(0.0, 30.0, sn)) * 0.42;
 }
 
 void main() {

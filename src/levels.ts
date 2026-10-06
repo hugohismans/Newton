@@ -132,6 +132,9 @@ add(
         flakeAt(230, 98, 36),
       ],
       items: [{ kind: 'fragment', x: 210, y: 50, id: 'frag-flocon' }],
+      hints: [
+        { x: 210, y: 400, key: 'rise' },
+      ],
     },
     420,
     2,
@@ -171,25 +174,23 @@ add(
   }),
 );
 
-// Three carpets side by side over a floor of crystal spikes.
-const tapisSolids = [0, 1, 2].flatMap((i) =>
-  carpetBlocks(i * 270, 0, 270, 3, (q) => (i === 1 && q.s === 90) || (i === 2 && q.s === 30 && q.y > 150)),
-);
+// Two carpets side by side over a floor of crystal spikes; the exit waits in the second one's hole.
+const tapisSolids = [0, 1].flatMap((i) => carpetBlocks(i * 270, 0, 270, 3, (q) => i === 1 && q.s === 90));
 add(
   room({
     id: 'tapis',
     name: 'Tapis',
     chapter: 2,
-    w: 810,
+    w: 540,
     h: 270,
     walls: { left: true, right: true, top: true, bottom: false },
     spawn: v(18, 248),
-    exit: v(790, 30),
+    exit: v(405, 135),
     solids: [block(0, 262, 30, 40), ...tapisSolids],
-    spikes: spikes(30, 810, 270, -1, 7),
+    spikes: spikes(30, 540, 270, -1, 7),
     items: [
-      { kind: 'refill', x: 405, y: 135, id: 'tapis-r1' },
-      { kind: 'refill', x: 600, y: 165, id: 'tapis-r2' },
+      { kind: 'refill', x: 300, y: 165, id: 'tapis-r1' },
+      { kind: 'refill', x: 465, y: 225, id: 'tapis-r2' },
     ],
   }),
 );

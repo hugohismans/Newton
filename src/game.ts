@@ -118,6 +118,8 @@ export class Game {
       if (q.has('all')) this.save.abilities = { wallJump: true, dash: true };
       const at = q.get('at')?.split(',').map(Number);
       this.loadRoom(dbg, at && at.length === 2 ? v(at[0], at[1]) : undefined);
+      const st = q.get('stack');
+      if (st) this.stack = st.split('|').map((f) => ({ id: f.split(':')[0], portal: +f.split(':')[1] }));
       this.setMode('play');
       return;
     }
@@ -723,9 +725,9 @@ export class Game {
     const camX = this.cam.x;
     const camY = this.cam.y;
     this.bg.draw(t, {
-      centerX: (ch === 2 ? -0.7453 : 0.0) + camX * 0.00035 * (ch === 2 ? 0.16 : 2.6) * Math.pow(0.33, depth),
-      centerY: (ch === 2 ? 0.1127 : 0.0) + camY * 0.00035 * (ch === 2 ? 0.16 : 2.6) * Math.pow(0.33, depth),
-      zoom: (ch === 2 ? 0.16 : 2.6) * Math.pow(0.33, depth) * (inMenu ? 1.0 : 1),
+      centerX: (ch === 2 ? -0.74364 : 0.0) + camX * 0.00035 * (ch === 2 ? 0.012 : 2.6) * Math.pow(0.33, depth),
+      centerY: (ch === 2 ? 0.13182 : 0.0) + camY * 0.00035 * (ch === 2 ? 0.012 : 2.6) * Math.pow(0.33, depth),
+      zoom: (ch === 2 ? 0.012 : 2.6) * Math.pow(0.33, depth) * (inMenu ? 1.0 : 1),
       mix: this.bgMix,
       hue: depth * 0.12 + (ch === 2 ? 0.55 : 0),
       bright: inMenu ? 1.0 : 0.85,
@@ -922,7 +924,7 @@ export class Game {
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `600 ${fontPx / cam.s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `600 ${fontPx / cam.s}px 'Sora', system-ui, sans-serif`;
     for (const h of this.def.hints) {
       if (h.key === 'dash' && !this.save.abilities.dash) continue;
       const d = Math.hypot(h.x - this.player.pos.x, h.y - this.player.pos.y);
@@ -951,11 +953,11 @@ export class Game {
       ctx.globalAlpha = a;
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(220, 235, 255, 0.75)';
-      ctx.font = `600 ${11 * s}px 'Space Grotesk', system-ui, sans-serif`;
+      ctx.font = `600 ${11 * s}px 'Sora', system-ui, sans-serif`;
       const top = this.safe.t + this.vh * 0.14;
       ctx.fillText(this.banner.sub.toUpperCase(), this.vw / 2, top);
       ctx.fillStyle = '#ffffff';
-      ctx.font = `700 ${26 * s}px 'Space Grotesk', system-ui, sans-serif`;
+      ctx.font = `700 ${26 * s}px 'Sora', system-ui, sans-serif`;
       ctx.fillText(this.banner.text, this.vw / 2, top + 30 * s);
       ctx.restore();
     }
@@ -964,7 +966,7 @@ export class Game {
     let y = this.safe.t + 26 * s;
     ctx.save();
     ctx.textAlign = 'right';
-    ctx.font = `600 ${12 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `600 ${12 * s}px 'Sora', system-ui, sans-serif`;
     const frags = [...this.collected].filter((id) => id.startsWith('frag')).length;
     if (frags > 0) {
       ctx.fillStyle = '#ffe39a';
@@ -1113,17 +1115,17 @@ export class Game {
     ctx.globalAlpha = a;
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(200,220,255,0.8)';
-    ctx.font = `600 ${12 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `600 ${12 * s}px 'Sora', system-ui, sans-serif`;
     ctx.fillText('NOUVELLE CAPACITÉ', this.vw / 2, this.vh * 0.36);
     ctx.fillStyle = '#fff';
-    ctx.font = `700 ${38 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `700 ${38 * s}px 'Sora', system-ui, sans-serif`;
     ctx.fillText(c.title, this.vw / 2, this.vh * 0.36 + 44 * s);
-    ctx.font = `400 ${15 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `400 ${15 * s}px 'Sora', system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(235,242,255,0.92)';
     wrapText(ctx, c.body, this.vw / 2, this.vh * 0.36 + 80 * s, Math.min(this.vw * 0.8, 460 * s), 21 * s);
     if (c.t > 0.9) {
       ctx.globalAlpha = a * (0.5 + 0.5 * Math.sin(this.time * 4));
-      ctx.font = `600 ${12 * s}px 'Space Grotesk', system-ui, sans-serif`;
+      ctx.font = `600 ${12 * s}px 'Sora', system-ui, sans-serif`;
       ctx.fillText(this.input.device === 'touch' ? 'Touche pour continuer' : 'Appuie pour continuer', this.vw / 2, this.vh * 0.84);
     }
     ctx.restore();
@@ -1149,7 +1151,7 @@ export class Game {
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = '#fff';
-      ctx.font = `600 ${15 * s}px 'Space Grotesk', system-ui, sans-serif`;
+      ctx.font = `600 ${15 * s}px 'Sora', system-ui, sans-serif`;
       ctx.fillText(it.label(), this.vw / 2, y + 1);
     });
   }
@@ -1162,7 +1164,7 @@ export class Game {
     ctx.fillRect(0, 0, this.vw, this.vh);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fff';
-    ctx.font = `700 ${30 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `700 ${30 * s}px 'Sora', system-ui, sans-serif`;
     ctx.fillText(this.menu!.title, this.vw / 2, this.vh * 0.22);
     this.drawMenuItems(this.vh * 0.22 + 60 * s, s);
     ctx.restore();
@@ -1182,17 +1184,17 @@ export class Game {
     ctx.textBaseline = 'middle';
     const ty = this.vh * (this.vh > this.vw ? 0.3 : 0.24);
     ctx.fillStyle = '#ffffff';
-    ctx.font = `700 ${Math.min(64 * s, this.vw / 7)}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `700 ${Math.min(64 * s, this.vw / 7)}px 'Sora', system-ui, sans-serif`;
     ctx.shadowColor = 'rgba(120, 220, 255, 0.8)';
     ctx.shadowBlur = 24;
     ctx.fillText('N E W T O N', this.vw / 2, ty);
     ctx.shadowBlur = 0;
     ctx.fillStyle = 'rgba(220,235,255,0.8)';
-    ctx.font = `400 ${14 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `400 ${14 * s}px 'Sora', system-ui, sans-serif`;
     ctx.fillText('un voyage au cœur des fractales', this.vw / 2, ty + 40 * s);
     this.drawMenuItems(ty + 100 * s, s);
     ctx.fillStyle = 'rgba(220,235,255,0.45)';
-    ctx.font = `400 ${11 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `400 ${11 * s}px 'Sora', system-ui, sans-serif`;
     const hint =
       this.input.device === 'touch'
         ? 'Joue en paysage · plein écran recommandé'
@@ -1212,9 +1214,9 @@ export class Game {
     ctx.textBaseline = 'middle';
     const ty = this.vh * 0.25;
     ctx.fillStyle = '#fff';
-    ctx.font = `700 ${34 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `700 ${34 * s}px 'Sora', system-ui, sans-serif`;
     ctx.fillText('Fin du prototype', this.vw / 2, ty);
-    ctx.font = `400 ${15 * s}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = `400 ${15 * s}px 'Sora', system-ui, sans-serif`;
     ctx.fillStyle = 'rgba(230,240,255,0.85)';
     const m = Math.floor(this.save.time / 60);
     const sec = Math.floor(this.save.time % 60);
