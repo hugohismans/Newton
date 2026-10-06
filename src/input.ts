@@ -63,7 +63,7 @@ export class Input {
   /** Called on the first user gesture (audio unlock). */
   onGesture: (() => void) | null = null;
 
-  constructor(private el: HTMLElement) {
+  constructor(el: HTMLElement) {
     window.addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
       if (e.repeat) return;
@@ -81,12 +81,22 @@ export class Input {
     window.addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()));
     window.addEventListener('blur', () => this.keys.clear());
 
-    el.addEventListener('pointerdown', (e) => this.pointerDown(e), { passive: false });
-    el.addEventListener('pointermove', (e) => this.pointerMove(e), { passive: false });
-    el.addEventListener('pointerup', (e) => this.pointerUp(e));
-    el.addEventListener('pointercancel', (e) => this.pointerUp(e));
+    // Mouse goes through pointer events; touches through touch events, which iOS Safari
+    // delivers more reliably and which let us re-sync the active fingers on every event.
+    el.addEventListener('pointerdown', (e) => this.mouseDown(e), { passive: false });
     el.addEventListener('contextmenu', (e) => e.preventDefault());
-    document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    const opts = { passive: false } as const;
+    el.addEventListener('touchstart', (e) => this.touchStart(e), opts);
+    el.addEventListener('touchmove', (e) => this.touchMove(e), opts);
+    el.addEventListener('touchend', (e) => this.touchEnd(e), opts);
+    el.addEventListener('touchcancel', (e) => this.touchEnd(e), opts);
+    document.addEventListener('touchmove', (e) => e.preventDefault(), opts);
+    const releaseAll = () => {
+      this.stick = null;
+      this.buttonPointers.clear();
+    };
+    window.addEventListener('blur', releaseAll);
+    document.addEventListener('visibilitychange', releaseAll);
   }
 
   /** Lay out touch buttons in CSS pixels, inside the safe area. */
@@ -107,41 +117,84 @@ export class Input {
     pause.y = safe.t + 14 * s + pause.r;
   }
 
-  private pointerDown(e: PointerEvent) {
+  private mouseDown(e: PointerEvent) {
+    if (e.pointerType !== 'mouse') return;
     e.preventDefault();
     this.taps.push({ x: e.clientX, y: e.clientY });
     if (this.taps.length > 8) this.taps.shift();
-    if (e.pointerType === 'mouse') {
-      // Mouse clicks only count as "any key" (menus); the game is played with keys.
-      this.latched.any = true;
-      this.onGesture?.();
-      return;
-    }
+    // Mouse clicks only count as "any key" (menus); the game is played with keys.
+    this.latched.any = true;
+    this.onGesture?.();
+  }
+
+  private touchStart(e: TouchEvent) {
+    e.preventDefault();
     this.device = 'touch';
     this.latched.any = true;
     this.onGesture?.();
-    try {
-      this.el.setPointerCapture(e.pointerId);
-    } catch {
-      /* not supported */
+    this.sync(e);
+    for (const t of Array.from(e.changedTouches)) {
+      const x = t.clientX;
+      const y = t.clientY;
+      this.taps.push({ x, y });
+      if (this.taps.length > 8) this.taps.shift();
+      this.press(t.identifier, x, y);
     }
-    const x = e.clientX;
-    const y = e.clientY;
-    const w = window.innerWidth;
+  }
+
+  private press(id: number, x: number, y: number) {
     for (const b of this.buttons) {
       if (!b.visible || b.id === 'jump') continue;
       const reach = b.id === 'pause' ? b.r * 1.6 : b.r * 1.35;
       if (Math.hypot(x - b.x, y - b.y) < reach) {
-        this.pressButton(b.id, e.pointerId);
+        this.pressButton(b.id, id);
         return;
       }
     }
-    if (x < w * 0.45) {
-      if (!this.stick) this.stick = { pointer: e.pointerId, ox: x, oy: y, x, y };
+    if (x < window.innerWidth * 0.45) {
+      // A new finger on the left always takes over the stick.
+      this.stick = { pointer: id, ox: x, oy: y, x, y };
       return;
     }
     // The whole remaining right side acts as the jump button.
-    this.pressButton('jump', e.pointerId);
+    this.pressButton('jump', id);
+  }
+
+  private touchMove(e: TouchEvent) {
+    e.preventDefault();
+    this.sync(e);
+    const st = this.stick;
+    if (!st) return;
+    for (const t of Array.from(e.changedTouches)) {
+      if (t.identifier !== st.pointer) continue;
+      st.x = t.clientX;
+      st.y = t.clientY;
+      // Drag the stick origin along so direction changes stay responsive.
+      const max = this.stickRadius();
+      const dx = st.x - st.ox;
+      const dy = st.y - st.oy;
+      const d = Math.hypot(dx, dy);
+      if (d > max) {
+        st.ox = st.x - (dx / d) * max;
+        st.oy = st.y - (dy / d) * max;
+      }
+    }
+  }
+
+  private touchEnd(e: TouchEvent) {
+    e.preventDefault();
+    for (const t of Array.from(e.changedTouches)) {
+      if (this.stick?.pointer === t.identifier) this.stick = null;
+      this.buttonPointers.delete(t.identifier);
+    }
+    this.sync(e);
+  }
+
+  /** Drop any finger the browser no longer reports, so nothing stays stuck. */
+  private sync(e: TouchEvent) {
+    const alive = new Set(Array.from(e.touches).map((t) => t.identifier));
+    if (this.stick && !alive.has(this.stick.pointer)) this.stick = null;
+    for (const id of [...this.buttonPointers.keys()]) if (!alive.has(id)) this.buttonPointers.delete(id);
   }
 
   private pressButton(id: TouchButton['id'], pointer: number) {
@@ -150,27 +203,6 @@ export class Input {
     if (id === 'dash') this.latched.dash = true;
     if (id === 'dive') this.latched.dive = true;
     if (id === 'pause') this.latched.pause = true;
-  }
-
-  private pointerMove(e: PointerEvent) {
-    if (this.stick && e.pointerId === this.stick.pointer) {
-      this.stick.x = e.clientX;
-      this.stick.y = e.clientY;
-      // Drag the stick origin along so direction changes stay responsive.
-      const max = this.stickRadius();
-      const dx = this.stick.x - this.stick.ox;
-      const dy = this.stick.y - this.stick.oy;
-      const d = Math.hypot(dx, dy);
-      if (d > max) {
-        this.stick.ox = this.stick.x - (dx / d) * max;
-        this.stick.oy = this.stick.y - (dy / d) * max;
-      }
-    }
-  }
-
-  private pointerUp(e: PointerEvent) {
-    if (this.stick && e.pointerId === this.stick.pointer) this.stick = null;
-    this.buttonPointers.delete(e.pointerId);
   }
 
   stickRadius() {
@@ -186,9 +218,11 @@ export class Input {
     if (!this.stick) return { x: 0, y: 0 };
     const dx = this.stick.x - this.stick.ox;
     const dy = this.stick.y - this.stick.oy;
-    const d = Math.hypot(dx, dy);
-    if (d < this.stickRadius() * 0.3) return { x: 0, y: 0 };
-    return eightWay(dx, dy);
+    // Axes are read separately: drifting the thumb upward must not cancel running.
+    const R = this.stickRadius();
+    const x = Math.abs(dx) > R * 0.3 ? Math.sign(dx) : 0;
+    const y = Math.abs(dy) > R * 0.55 ? Math.sign(dy) : 0;
+    return { x, y };
   }
 
   private pollPad() {

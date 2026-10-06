@@ -256,3 +256,25 @@ export function kochPath(x0: number, y: number, pieces: [number, number, number]
     detail: [...fine, v(x, bottom), v(x0, bottom)],
   };
 }
+
+/** Thin floating crystal ledge: a walkable Koch top over a mirrored Koch underside. */
+export function kochLedge(x0: number, x1: number, y: number, thick = 6): SolidDef {
+  const n = Math.max(1, Math.round((x1 - x0) / 12));
+  const w = (x1 - x0) / n;
+  const top: Vec[] = [];
+  const topFine: Vec[] = [];
+  const bot: Vec[] = [];
+  const botFine: Vec[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = v(x0 + i * w, y);
+    const b = v(x0 + (i + 1) * w, y);
+    const skip = i > 0 ? 1 : 0;
+    top.push(...kochCurve(a, b, 1, 1).slice(skip));
+    topFine.push(...kochCurve(a, b, 2, 1).slice(skip));
+    const c = v(x1 - i * w, y + thick);
+    const d = v(x1 - (i + 1) * w, y + thick);
+    bot.push(...kochCurve(c, d, 1, 1).slice(skip));
+    botFine.push(...kochCurve(c, d, 2, 1).slice(skip));
+  }
+  return { kind: 'ground', poly: [...top, ...bot], detail: [...topFine, ...botFine] };
+}
